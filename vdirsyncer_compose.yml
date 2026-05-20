@@ -1,0 +1,15 @@
+services:
+  vdirsyncer:
+    build:
+      context: .
+      dockerfile: Containerfile
+    image: localhost/vdirsyncer-app:$VERSION
+    container_name: vdirsyncer
+    restart: unless-stopped
+    pull_policy: never
+    env_file:
+      - vdirsyncer.env
+    volumes:
+      - $VDIRSYNCER_CONFIG:/app/config:ro,z
+      - $VDIRSYNCER_DATA:/app/.vdirsyncer:Z
+      - $VDIRSYNCER_CALENDARS:/app/calendars:Z

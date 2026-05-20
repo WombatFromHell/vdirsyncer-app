@@ -1,0 +1,7 @@
+calendars
+data
+
+vdirsyncer.env
+google_token
+*.conf
+!*.conf.example
