@@ -20,16 +20,45 @@ if [ ${#config_files[@]} -eq 0 ]; then
   exit 1
 fi
 
+# Phase 1: Enumerate and validate all user units
+declare -A user_map
+users=()
+
 for config_file in "${config_files[@]}"; do
-  filename=$(basename "$config_file")
-  user="${filename%.conf}"
+  user=$(basename "$config_file" .conf)
 
-  echo "Running sync for user: $user (config: $config_file)"
+  if [[ -n "${user_map[$user]:-}" ]]; then
+    echo "Error: Duplicate user '$user'."
+    exit 1
+  fi
 
-  # Perform the vdirsyncer operations for this specific user/config
+  user_upper="${user^^}"
+  uid_var="${user_upper}_UID"
+  gid_var="${user_upper}_GID"
+  uid="${!uid_var:?Error: $uid_var is not set or empty}"
+  gid="${!gid_var:?Error: $gid_var is not set or empty}"
+
+  user_map[$user]="$uid:$gid"
+  users+=("$user")
+done
+
+# Phase 2: Execute sync and normalize permissions for each user
+for user in "${users[@]}"; do
+  IFS=: read -r uid gid <<<"${user_map[$user]}"
+
+  echo "Running sync for user: $user"
+
+  config_file="$CONFIG_DIR/$user.conf"
+
   ("$YES" || true) | "$VDIRSYNCER" -c "$config_file" discover
   "$VDIRSYNCER" -c "$config_file" metasync
   "$VDIRSYNCER" -c "$config_file" sync
+
+  cal_dir="/app/calendars/$user"
+
+  chown -R "$uid:$gid" "$cal_dir"
+  find "$cal_dir" -type f -exec chmod 0600 {} +
+  find "$cal_dir" -type d -exec chmod 0700 {} +
 
   echo "Completed sync for user: $user"
 done
