@@ -1,7 +1,9 @@
 calendars
 data
 
-vdirsyncer.env
+.env
+compose.env
+
 google_token
 *.conf
 !*.conf.example

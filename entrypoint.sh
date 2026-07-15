@@ -25,7 +25,8 @@ for config_file in "${config_files[@]}"; do
 done
 
 # expose a single entrypoint for syncing on schedule (does user-logic as well)
-echo "0 */2 * * * /usr/local/bin/vdirsyncer.sh" >>"$CRONTAB_FILE"
+SYNC_SCHEDULE="${SYNC_SCHEDULE:-"*/30 * * * *"}"
+echo "${SYNC_SCHEDULE} /usr/local/bin/vdirsyncer.sh" >>"$CRONTAB_FILE"
 
 echo "--- Generated crontab ---"
 cat "$CRONTAB_FILE"

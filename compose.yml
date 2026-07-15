@@ -8,7 +8,9 @@ services:
     restart: unless-stopped
     pull_policy: never
     env_file:
-      - vdirsyncer.env
+      - compose.env
+    labels:
+      - com.getarcaneapp.arcane.updater=false
     volumes:
       - $VDIRSYNCER_CONFIG:/app/config:ro,z
       - $VDIRSYNCER_DATA:/app/.vdirsyncer:Z
