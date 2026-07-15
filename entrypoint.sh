@@ -20,6 +20,12 @@ echo "" >"$CRONTAB_FILE"
 for config_file in "${config_files[@]}"; do
   user=$(basename "$config_file" .conf)
 
+  user_re='^[a-z0-9_-]+$'
+  if [[ ! "$user" =~ $user_re ]]; then
+    echo "Warning: Skipping '$(basename "$config_file")' — filename must match [a-z0-9_-]"
+    continue
+  fi
+
   user_upper="${user^^}"
   uid_var="${user_upper}_UID"
   gid_var="${user_upper}_GID"
@@ -41,6 +47,13 @@ for config_file in "${config_files[@]}"; do
 done
 
 SYNC_SCHEDULE="${SYNC_SCHEDULE:-"*/30 * * * *"}"
+
+schedule_re='^[0-9*,/ -]+$'
+if [[ ! "$SYNC_SCHEDULE" =~ $schedule_re ]]; then
+  echo "Error: SYNC_SCHEDULE contains invalid characters: $SYNC_SCHEDULE"
+  exit 1
+fi
+
 echo "${SYNC_SCHEDULE} /usr/local/bin/vdirsyncer.sh" >>"$CRONTAB_FILE"
 
 echo "--- Generated crontab ---"
