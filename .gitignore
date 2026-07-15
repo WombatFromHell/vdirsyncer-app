@@ -1,5 +1,6 @@
 calendars
 data
+.users
 
 .env
 compose.env

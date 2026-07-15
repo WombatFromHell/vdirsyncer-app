@@ -3,6 +3,7 @@ set -euo pipefail
 
 CRONTAB_FILE="/app/crontab"
 CONFIG_DIR="/app/config"
+USERS_FILE="/app/.users"
 
 shopt -s nullglob
 config_files=("$CONFIG_DIR"/*.conf)
@@ -13,18 +14,32 @@ if [ ${#config_files[@]} -eq 0 ]; then
   exit 1
 fi
 
+: >"$USERS_FILE"
 echo "" >"$CRONTAB_FILE"
+
 for config_file in "${config_files[@]}"; do
-  filename=$(basename "$config_file")
-  user="${filename%.conf}"
+  user=$(basename "$config_file" .conf)
 
-  echo "Discovered config for user: $user"
+  user_upper="${user^^}"
+  uid_var="${user_upper}_UID"
+  gid_var="${user_upper}_GID"
 
-  # Ensure directories exist for active state
-  mkdir -p "/app/.vdirsyncer/$user" "/app/calendars"
+  uid="${!uid_var:?Error: $uid_var is not set}"
+  gid="${!gid_var:?Error: $gid_var is not set}"
+
+  if ! [[ "$uid" =~ ^[0-9]+$ ]] || ! [[ "$gid" =~ ^[0-9]+$ ]]; then
+    echo "Error: $uid_var=$uid or $gid_var=$gid is not numeric"
+    exit 1
+  fi
+
+  echo "Discovered user: $user (uid=$uid, gid=$gid)"
+
+  mkdir -p "/app/.vdirsyncer/$user" "/app/calendars/$user"
+  chown -R "$uid:$gid" "/app/.vdirsyncer/$user" "/app/calendars/$user"
+
+  echo "$user:$uid:$gid" >>"$USERS_FILE"
 done
 
-# expose a single entrypoint for syncing on schedule (does user-logic as well)
 SYNC_SCHEDULE="${SYNC_SCHEDULE:-"*/30 * * * *"}"
 echo "${SYNC_SCHEDULE} /usr/local/bin/vdirsyncer.sh" >>"$CRONTAB_FILE"
 
